@@ -73,11 +73,23 @@ void MprisControlPlugin::sendMediaProperties(std::variant<NetworkPacket, QString
     if (packetOrName.index() == 1)
         np.set(QStringLiteral("player"), std::get<1>(packetOrName));
 
-    auto mediaProperties = player.TryGetMediaPropertiesAsync().get();
+    const QString kNA = QStringLiteral("N/A");
+    QString title = kNA;
+    QString artist = kNA;
+    QString album = kNA;
+    try {
+        auto mediaProperties = player.TryGetMediaPropertiesAsync().get();
+        title = QString::fromWCharArray(mediaProperties.Title().c_str());
+        artist = QString::fromWCharArray(mediaProperties.Artist().c_str());
+        album = QString::fromWCharArray(mediaProperties.AlbumTitle().c_str());
+    }  catch (const winrt::hresult_error& ex)
+    {
+        qWarning(KDECONNECT_PLUGIN_MPRISCONTROL) << QString::fromWCharArray(ex.message().c_str());
+    }
 
-    np.set(QStringLiteral("title"), QString::fromWCharArray(mediaProperties.Title().c_str()));
-    np.set(QStringLiteral("artist"), QString::fromWCharArray(mediaProperties.Artist().c_str()));
-    np.set(QStringLiteral("album"), QString::fromWCharArray(mediaProperties.AlbumTitle().c_str()));
+    np.set(QStringLiteral("title"), title);
+    np.set(QStringLiteral("artist"), artist);
+    np.set(QStringLiteral("album"), album);
     np.set(QStringLiteral("albumArtUrl"), randomUrl());
 
     np.set(QStringLiteral("url"), QString());
