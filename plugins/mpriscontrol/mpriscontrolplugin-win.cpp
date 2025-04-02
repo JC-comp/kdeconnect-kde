@@ -38,7 +38,7 @@ MprisControlPlugin::MprisControlPlugin(QObject *parent, const QVariantList &args
     this->updatePlayerList();
 }
 
-std::optional<QString> MprisControlPlugin::getPlayerName(GlobalSystemMediaTransportControlsSession const &player)
+std::optional<QString> MprisControlPlugin::getPlayerName(const GlobalSystemMediaTransportControlsSession &player)
 {
     auto entry = std::find(this->playerList.constBegin(), this->playerList.constEnd(), player);
 
@@ -66,7 +66,7 @@ QString MprisControlPlugin::randomUrl()
     return QStringLiteral("file://") + fileUrl;
 }
 
-void MprisControlPlugin::sendMediaProperties(std::variant<NetworkPacket, QString> const &packetOrName, GlobalSystemMediaTransportControlsSession const &player)
+void MprisControlPlugin::sendMediaProperties(const std::variant<NetworkPacket, QString> &packetOrName, const GlobalSystemMediaTransportControlsSession &player)
 {
     NetworkPacket np = packetOrName.index() == 0 ? std::get<0>(packetOrName) : NetworkPacket(PACKET_TYPE_MPRIS);
     if (packetOrName.index() == 1)
@@ -86,7 +86,7 @@ void MprisControlPlugin::sendMediaProperties(std::variant<NetworkPacket, QString
         sendPacket(np);
 }
 
-void MprisControlPlugin::sendPlaybackInfo(std::variant<NetworkPacket, QString> const &packetOrName, GlobalSystemMediaTransportControlsSession const &player)
+void MprisControlPlugin::sendPlaybackInfo(const std::variant<NetworkPacket, QString> &packetOrName, const GlobalSystemMediaTransportControlsSession &player)
 {
     NetworkPacket np = packetOrName.index() == 0 ? std::get<0>(packetOrName) : NetworkPacket(PACKET_TYPE_MPRIS);
     if (packetOrName.index() == 1)
@@ -134,8 +134,8 @@ void MprisControlPlugin::sendPlaybackInfo(std::variant<NetworkPacket, QString> c
         sendPacket(np);
 }
 
-void MprisControlPlugin::sendTimelineProperties(std::variant<NetworkPacket, QString> const &packetOrName,
-                                                GlobalSystemMediaTransportControlsSession const &player,
+void MprisControlPlugin::sendTimelineProperties(const std::variant<NetworkPacket, QString> &packetOrName,
+                                                const GlobalSystemMediaTransportControlsSession &player,
                                                 bool lengthOnly)
 {
     NetworkPacket np = packetOrName.index() == 0 ? std::get<0>(packetOrName) : NetworkPacket(PACKET_TYPE_MPRIS);
@@ -251,9 +251,9 @@ void MprisControlPlugin::sendPlayerList()
     sendPacket(np);
 }
 
-void MprisControlPlugin::getThumbnail(std::variant<NetworkPacket, QString> const &packetOrName,
-                                      GlobalSystemMediaTransportControlsSession const &player,
-                                      QString artUrl)
+void MprisControlPlugin::getThumbnail(const std::variant<NetworkPacket, QString> &packetOrName,
+                                      const GlobalSystemMediaTransportControlsSession &player,
+                                      const QString artUrl)
 {
     QSharedPointer<QBuffer> qdata = QSharedPointer<QBuffer>(new QBuffer());
 
@@ -281,7 +281,7 @@ void MprisControlPlugin::getThumbnail(std::variant<NetworkPacket, QString> const
         Qt::QueuedConnection);
 }
 
-bool MprisControlPlugin::sendAlbumArt(std::variant<NetworkPacket, QString> const &packetOrName, QSharedPointer<QBuffer> const qdata, QString artUrl)
+bool MprisControlPlugin::sendAlbumArt(const std::variant<NetworkPacket, QString> &packetOrName, const QSharedPointer<QBuffer> qdata, const QString artUrl)
 {
     qWarning(KDECONNECT_PLUGIN_MPRISCONTROL) << "Sending Album Art";
     NetworkPacket np = packetOrName.index() == 0 ? std::get<0>(packetOrName) : NetworkPacket(PACKET_TYPE_MPRIS);
