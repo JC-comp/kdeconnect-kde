@@ -53,7 +53,8 @@ std::optional<QString> MprisControlPlugin::getPlayerName(GlobalSystemMediaTransp
 QString MprisControlPlugin::randomUrl()
 {
     const QString VALID_CHARS = QStringLiteral("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
-    std::default_random_engine generator;
+    std::random_device rd;
+    std::default_random_engine generator(rd());
     std::uniform_int_distribution<int> distribution(0, VALID_CHARS.size() - 1);
 
     const int size = 10;
