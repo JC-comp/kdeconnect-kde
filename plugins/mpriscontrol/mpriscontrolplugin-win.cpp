@@ -276,7 +276,7 @@ void MprisControlPlugin::getThumbnail(const std::variant<NetworkPacket, QString>
     QMetaObject::invokeMethod(
         this,
         [=]() {
-            this->sendAlbumArt(packetOrName, qdata, artUrl);
+            sendAlbumArt(packetOrName, qdata, artUrl);
         },
         Qt::QueuedConnection);
 }
@@ -380,8 +380,8 @@ void MprisControlPlugin::receivePacket(const NetworkPacket &np)
     auto player = it.value();
 
     if (np.has(QStringLiteral("albumArtUrl"))) {
-        concurrency::create_task([this, name, player, np] {
-            this->getThumbnail(name, player, np.get<QString>(QStringLiteral("albumArtUrl")));
+        concurrency::create_task([=] {
+            getThumbnail(name, player, np.get<QString>(QStringLiteral("albumArtUrl")));
         });
         return;
     }
