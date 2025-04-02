@@ -257,14 +257,20 @@ void MprisControlPlugin::getThumbnail(std::variant<NetworkPacket, QString> const
 {
     QSharedPointer<QBuffer> qdata = QSharedPointer<QBuffer>(new QBuffer());
 
-    auto thumbnail = player.TryGetMediaPropertiesAsync().get().Thumbnail();
-    if (thumbnail) {
-        auto stream = thumbnail.OpenReadAsync().get();
-        if (stream && stream.CanRead()) {
-            IBuffer data = Buffer(stream.Size());
-            data = stream.ReadAsync(data, stream.Size(), InputStreamOptions::None).get();
-            qdata->setData((char *)data.data(), data.Capacity());
+    try {
+        auto mediaProperties = player.TryGetMediaPropertiesAsync().get();
+        auto thumbnail = mediaProperties.Thumbnail();
+        if (thumbnail) {
+            auto stream = thumbnail.OpenReadAsync().get();
+            if (stream && stream.CanRead()) {
+                IBuffer data = Buffer(stream.Size());
+                data = stream.ReadAsync(data, stream.Size(), InputStreamOptions::None).get();
+                qdata->setData((char *)data.data(), data.Capacity());
+            }
         }
+    } catch (const winrt::hresult_error &ex) {
+        qWarning(KDECONNECT_PLUGIN_MPRISCONTROL) << "Unable to get thumbnails: " << QString::fromWCharArray(ex.message().c_str());
+        return;
     }
 
     QMetaObject::invokeMethod(
