@@ -12,8 +12,6 @@
 #include <KLocalizedString>
 #include <KPluginFactory>
 
-#include <QBuffer>
-
 #include <chrono>
 #include <random>
 
@@ -247,19 +245,16 @@ void MprisControlPlugin::sendPlayerList()
     NetworkPacket np(PACKET_TYPE_MPRIS);
 
     np.set(QStringLiteral("playerList"), playerList.keys() + QStringList(DEFAULT_PLAYER));
-    np.set(QStringLiteral("supportAlbumArtPayload"), false); // TODO: Sending albumArt doesn't work
+    np.set(QStringLiteral("supportAlbumArtPayload"), true);
 
     sendPacket(np);
 }
 
-bool MprisControlPlugin::sendAlbumArt(std::variant<NetworkPacket, QString> const &packetOrName,
+void MprisControlPlugin::getThumbnail(std::variant<NetworkPacket, QString> const &packetOrName,
                                       GlobalSystemMediaTransportControlsSession const &player,
                                       QString artUrl)
 {
-    qWarning(KDECONNECT_PLUGIN_MPRISCONTROL) << "Sending Album Art";
-    NetworkPacket np = packetOrName.index() == 0 ? std::get<0>(packetOrName) : NetworkPacket(PACKET_TYPE_MPRIS);
-    if (packetOrName.index() == 1)
-        np.set(QStringLiteral("player"), std::get<1>(packetOrName));
+    QSharedPointer<QBuffer> qdata = QSharedPointer<QBuffer>(new QBuffer());
 
     auto thumbnail = player.TryGetMediaPropertiesAsync().get().Thumbnail();
     if (thumbnail) {
@@ -267,24 +262,31 @@ bool MprisControlPlugin::sendAlbumArt(std::variant<NetworkPacket, QString> const
         if (stream && stream.CanRead()) {
             IBuffer data = Buffer(stream.Size());
             data = stream.ReadAsync(data, stream.Size(), InputStreamOptions::None).get();
-            QSharedPointer<QBuffer> qdata = QSharedPointer<QBuffer>(new QBuffer());
             qdata->setData((char *)data.data(), data.Capacity());
-
-            np.set(QStringLiteral("transferringAlbumArt"), true);
-            np.set(QStringLiteral("albumArtUrl"), artUrl);
-
-            np.setPayload(qdata, qdata->size());
-
-            if (packetOrName.index() == 1)
-                sendPacket(np);
-
-            return true;
         }
-
-        return false;
-    } else {
-        return false;
     }
+
+    QMetaObject::invokeMethod(
+        this,
+        [=]() {
+            this->sendAlbumArt(packetOrName, qdata, artUrl);
+        },
+        Qt::QueuedConnection);
+}
+
+bool MprisControlPlugin::sendAlbumArt(std::variant<NetworkPacket, QString> const &packetOrName, QSharedPointer<QBuffer> const qdata, QString artUrl)
+{
+    qWarning(KDECONNECT_PLUGIN_MPRISCONTROL) << "Sending Album Art";
+    NetworkPacket np = packetOrName.index() == 0 ? std::get<0>(packetOrName) : NetworkPacket(PACKET_TYPE_MPRIS);
+    if (packetOrName.index() == 1)
+        np.set(QStringLiteral("player"), std::get<1>(packetOrName));
+
+    np.set(QStringLiteral("transferringAlbumArt"), true);
+    np.set(QStringLiteral("albumArtUrl"), artUrl);
+    np.setPayload(qdata, qdata->size());
+
+    sendPacket(np);
+    return true;
 }
 
 void MprisControlPlugin::handleDefaultPlayer(const NetworkPacket &np)
@@ -371,7 +373,9 @@ void MprisControlPlugin::receivePacket(const NetworkPacket &np)
     auto player = it.value();
 
     if (np.has(QStringLiteral("albumArtUrl"))) {
-        sendAlbumArt(name, player, np.get<QString>(QStringLiteral("albumArtUrl")));
+        concurrency::create_task([this, name, player, np] {
+            this->getThumbnail(name, player, np.get<QString>(QStringLiteral("albumArtUrl")));
+        });
         return;
     }
 

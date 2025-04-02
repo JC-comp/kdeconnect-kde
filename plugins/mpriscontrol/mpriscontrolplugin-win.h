@@ -10,6 +10,7 @@
 
 #include <variant>
 
+#include <QBuffer>
 #include <QHash>
 #include <vector>
 
@@ -33,6 +34,8 @@ public:
     explicit MprisControlPlugin(QObject *parent, const QVariantList &args);
 
     void receivePacket(const NetworkPacket &np) override;
+public Q_SLOTS:
+    bool sendAlbumArt(std::variant<NetworkPacket, QString> const &packetOrName, QSharedPointer<QBuffer> const qdata, QString artUrl);
 
 private:
     GlobalSystemMediaTransportControlsSessionManager sessionManager;
@@ -50,7 +53,7 @@ private:
                                 bool lengthOnly = false);
     void updatePlayerList();
     void sendPlayerList();
-    bool sendAlbumArt(std::variant<NetworkPacket, QString> const &packetOrName, GlobalSystemMediaTransportControlsSession const &player, QString artUrl);
+    void getThumbnail(std::variant<NetworkPacket, QString> const &packetOrName, GlobalSystemMediaTransportControlsSession const &player, QString artUrl);
 
     void handleDefaultPlayer(const NetworkPacket &np);
 
