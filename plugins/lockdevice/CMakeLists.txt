@@ -10,4 +10,5 @@ target_link_libraries(kdeconnect_lockdevice
     kdeconnectinterfaces
     Qt::DBus
     KF6::I18n
+    Wtsapi32
 )

@@ -8,7 +8,9 @@
 
 #include <QObject>
 
+#include <Windows.h>
 #include <core/kdeconnectplugin.h>
+#include <wtsapi32.h>
 
 #define PACKET_TYPE_LOCK QStringLiteral("kdeconnect.lock")
 #define PACKET_TYPE_LOCK_REQUEST QStringLiteral("kdeconnect.lock.request")
@@ -21,6 +23,7 @@ class LockDevicePlugin : public KdeConnectPlugin
 
 public:
     explicit LockDevicePlugin(QObject *parent, const QVariantList &args);
+    ~LockDevicePlugin() override;
 
     bool isLocked() const;
     Q_SCRIPTABLE void setLocked(bool);
@@ -33,8 +36,15 @@ Q_SIGNALS:
     Q_SCRIPTABLE void lockedChanged(bool locked);
 
 private:
+    void registerSessionListener();
     void sendState();
 
     bool m_remoteLocked = false;
     bool m_localLocked = false;
+
+    static const wchar_t CLASS_NAME[];
+    static const wchar_t WINDOW_TITLE[];
+    HWND hWnd;
+    static LRESULT CALLBACK StaticWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+    LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
